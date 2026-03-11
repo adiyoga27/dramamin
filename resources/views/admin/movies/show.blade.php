@@ -25,6 +25,11 @@
             </p>
             
             <div class="flex flex-wrap gap-4 pt-4">
+                <a href="{{ route('admin.movies.play', $movie) }}" class="btn-primary flex items-center bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 w-full md:w-auto">
+                    <svg class="w-5 h-5 mr-3" fill="solid" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Play All
+                </a>
+
                 <form action="{{ route('admin.episodes.sync', $movie) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn-primary flex items-center">
@@ -91,6 +96,12 @@
                             <a href="{{ route('admin.episodes.export', $episode) }}" class="p-2 text-gray-400 hover:text-blue-600 transition-colors" title="Export JSON">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             </a>
+                            @if($episode->status === 'completed' && $episode->local_path)
+                            <a href="{{ route('admin.movies.play', ['movie' => $movie, 'episode' => $episode->id]) }}" class="p-2 text-indigo-500 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors" title="Play Episode">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </a>
+                            @endif
+
                             <form action="{{ route('admin.episodes.download', $episode) }}" method="POST">
                                 @csrf
                                 <button type="submit" 

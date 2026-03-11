@@ -67,4 +67,37 @@ class MovieController extends Controller
             ->header('Content-Type', 'application/json')
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
     }
+
+    public function play(Request $request, Movie $movie, $episodeId = null)
+    {
+        // Only get episodes that have been downloaded
+        $episodes = $movie->episodes()->where('status', 'completed')->whereNotNull('local_path')->orderBy('id')->get();
+        
+        if ($episodes->isEmpty()) {
+            return back()->with('info', 'There are no downloaded episodes for this movie. Please download some first.');
+        }
+
+        // Determine current episode
+        if ($episodeId) {
+            $currentEpisode = $episodes->firstWhere('id', $episodeId);
+            if (!$currentEpisode) {
+                // Flash message but fallback to first if id is invalid/not downloaded
+                session()->flash('warning', 'The requested episode is not available locally.');
+                $currentEpisode = $episodes->first();
+            }
+        } else {
+            $currentEpisode = $episodes->first();
+        }
+
+        // Determine next episode
+        $currentIndex = $episodes->search(function ($ep) use ($currentEpisode) {
+            return $ep->id === $currentEpisode->id;
+        });
+        
+        $nextEpisode = $currentIndex !== false && isset($episodes[$currentIndex + 1]) 
+            ? $episodes[$currentIndex + 1] 
+            : null;
+
+        return view('admin.movies.player', compact('movie', 'episodes', 'currentEpisode', 'nextEpisode'));
+    }
 }

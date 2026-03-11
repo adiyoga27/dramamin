@@ -17,8 +17,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('/movies', [MovieController::class, 'index'])->name('movies.index');
     Route::post('/movies/sync', [MovieController::class, 'sync'])->name('movies.sync');
     Route::get('/movies/{movie}', [MovieController::class, 'show'])->name('movies.show');
+    Route::get('/movies/{movie}/play/{episode?}', [MovieController::class, 'play'])->name('movies.play');
     Route::get('/movies/{movie}/export', [MovieController::class, 'exportJson'])->name('movies.export');
-    
+
     Route::post('/movies/{movie}/episodes/sync', [EpisodeController::class, 'sync'])->name('episodes.sync');
     Route::post('/movies/{movie}/episodes/download-all', [EpisodeController::class, 'downloadAll'])->name('episodes.downloadAll');
     Route::post('/episodes/{episode}/download', [EpisodeController::class, 'download'])->name('episodes.download');
