@@ -119,6 +119,14 @@
             video.playbackRate = parseFloat(savedSpeed);
         }
 
+        // Try to force play for reliable autoplay
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log("Autoplay prevented by browser policy.");
+            });
+        }
+
         // Auto-play next episode
         video.addEventListener('ended', function() {
             if (nextUrl) {
