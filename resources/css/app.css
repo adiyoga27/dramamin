@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    .glass {
+        @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl;
+    }
+    
+    .glass-dark {
+        @apply bg-gray-900/70 backdrop-blur-xl border border-white/5 shadow-xl;
+    }
+
+    .btn-premium {
+        @apply px-6 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:-translate-y-1 active:scale-95 shadow-lg;
+    }
+
+    .btn-primary {
+        @apply btn-premium bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/25 hover:shadow-blue-500/40;
+    }
+
+    .btn-secondary {
+        @apply btn-premium bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-700 shadow-gray-200/50 hover:bg-gray-50;
+    }
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.text-gradient {
+    @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent;
+}
+
