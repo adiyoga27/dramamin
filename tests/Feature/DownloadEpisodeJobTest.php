@@ -13,7 +13,6 @@ use Tests\TestCase;
 
 class DownloadEpisodeJobTest extends TestCase
 {
-    use RefreshDatabase;
 
     public function test_it_downloads_episode_and_updates_status(): void
     {

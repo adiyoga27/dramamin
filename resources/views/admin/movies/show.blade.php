@@ -69,13 +69,28 @@
                     </button>
                 </form>
 
-                <form action="{{ route('admin.episodes.downloadAll', $movie) }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn-primary flex items-center bg-emerald-600 border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700 w-full md:w-auto" onclick="return confirm('This will bulk download all un-downloaded episodes to storage. This may take a while. Continue?');">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 10l5 5 5-5m-5 5V3"></path></svg>
-                        Download All
-                    </button>
-                </form>
+                <div x-data="downloadTracker({{ $movie->id }})" class="w-full md:w-auto">
+                    <template x-if="!isDownloading">
+                        <form @submit.prevent="startDownload" action="{{ route('admin.episodes.downloadAll', $movie) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn-primary flex items-center bg-emerald-600 border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700 w-full md:w-auto" onclick="return confirm('This will bulk download all un-downloaded episodes to storage in the background. Continue?');">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 10l5 5 5-5m-5 5V3"></path></svg>
+                                Download All
+                            </button>
+                        </form>
+                    </template>
+                    <template x-if="isDownloading">
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 w-full min-w-[240px]">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="font-semibold text-gray-700 dark:text-gray-300">Downloading...</span>
+                                <span class="text-blue-600 dark:text-blue-400 font-bold" x-text="`${completed} / ${total}`"></span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden">
+                                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out" :style="`width: ${percentage}%`"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
 
                 <a href="{{ route('admin.movies.export', $movie) }}" class="btn-secondary flex items-center">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -158,3 +173,60 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('downloadTracker', (movieId) => ({
+            isDownloading: false,
+            total: 0,
+            completed: 0,
+            percentage: 0,
+            interval: null,
+
+            async startDownload(e) {
+                this.isDownloading = true;
+                
+                // Submit the form via AJAX to start the job
+                try {
+                    const form = e.target;
+                    await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    // Start polling immediately
+                    this.pollProgress();
+                    this.interval = setInterval(() => this.pollProgress(), 3000);
+                } catch (error) {
+                    console.error('Failed to start download:', error);
+                    this.isDownloading = false;
+                }
+            },
+
+            async pollProgress() {
+                try {
+                    const response = await fetch(`/admin/movies/${movieId}/episodes/progress`);
+                    const data = await response.json();
+                    
+                    this.total = data.total;
+                    this.completed = data.completed;
+                    this.percentage = this.total > 0 ? Math.round((this.completed / this.total) * 100) : 0;
+
+                    if (data.is_finished && this.isDownloading) {
+                        clearInterval(this.interval);
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('Error fetching progress:', error);
+                }
+            }
+        }));
+    });
+</script>
+@endpush

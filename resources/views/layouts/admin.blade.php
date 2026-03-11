@@ -59,6 +59,7 @@
             @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent;
         }
     </style>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased">
     <div class="min-h-screen flex">
@@ -130,5 +131,7 @@
             </div>
         </main>
     </div>
+    
+    @stack('scripts')
 </body>
 </html>

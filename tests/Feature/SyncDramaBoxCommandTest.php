@@ -14,7 +14,6 @@ use Tests\TestCase;
 
 class SyncDramaBoxCommandTest extends TestCase
 {
-    use RefreshDatabase;
 
     public function test_it_syncs_movies_and_dispatches_jobs(): void
     {

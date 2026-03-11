@@ -13,6 +13,10 @@ class DownloadEpisodeJob implements ShouldQueue
 {
     use Queueable;
 
+    public $tries = 3;
+
+    public $timeout = 300; // 5 minutes max download time per episode
+
     /**
      * Create a new job instance.
      */
