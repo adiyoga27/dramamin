@@ -23,7 +23,38 @@
             <p class="text-gray-600 dark:text-gray-400 leading-relaxed text-lg max-w-3xl">
                 {{ $movie->description }}
             </p>
-            
+
+            @if($movie->tags || $movie->play_count || $movie->shelf_time)
+            <div class="space-y-3 pt-2">
+                @if($movie->tags && is_array($movie->tags))
+                <div class="flex flex-wrap gap-2">
+                    @foreach($movie->tags as $tag)
+                        <span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-lg">{{ is_string($tag) ? $tag : ($tag['tagName'] ?? '') }}</span>
+                    @endforeach
+                </div>
+                @endif
+                <div class="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
+                    @if($movie->chapter_count)
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            <span>{{ $movie->chapter_count }} Chapters</span>
+                        </div>
+                    @endif
+                    @if($movie->play_count)
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            <span>{{ $movie->play_count }} Plays</span>
+                        </div>
+                    @endif
+                    @if($movie->shelf_time)
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span>Listed {{ $movie->shelf_time->diffForHumans() }}</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @endif
             <div class="flex flex-wrap gap-4 pt-4">
                 <a href="{{ route('admin.movies.play', $movie) }}" class="btn-primary flex items-center bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 w-full md:w-auto">
                     <svg class="w-5 h-5 mr-3" fill="solid" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

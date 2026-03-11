@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class ResourceSeeder extends Seeder
@@ -46,10 +46,10 @@ class ResourceSeeder extends Seeder
             );
         }
 
-        \App\Models\User::create([
+        User::create([
             'name' => 'Admin',
             'email' => 'admin@admin.com',
-            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'password' => 'password',
         ]);
     }
 }

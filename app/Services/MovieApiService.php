@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Resource;
-use App\Models\Movie;
 use App\Models\Episode;
+use App\Models\Movie;
+use App\Models\Resource;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -16,70 +16,114 @@ class MovieApiService
     public function syncMovies(Resource $resource)
     {
         try {
-            // Determine the URL based on the resource
-            $url = $resource->api_url;
+            $count = 0;
+
             if ($resource->name === 'Dramabox') {
-                $url .= 'latest?lang=in';
-            } elseif ($resource->name === 'Melolo') {
-                $url .= 'home?lang=id&offset=0';
-            } elseif ($resource->name === 'Netshort') {
-                $url .= 'list/1?lang=in';
-            } elseif ($resource->name === 'Reellife') {
-                $url .= 'home?page=1&lang=in';
-            }
+                for ($page = 1; $page <= 30; $page++) {
+                    $url = $resource->api_url."homepage?page={$page}&lang=in";
+                    $response = Http::get($url);
 
-            $response = Http::get($url);
+                    if ($response->successful()) {
+                        $responseData = $response->json();
+                        $moviesData = $responseData['recommendList']['records'] ?? [];
 
-            if ($response->successful()) {
-                $responseData = $response->json();
-                $moviesData = [];
+                        if (empty($moviesData)) {
+                            break; // Stop if there are no more records
+                        }
 
-                // Parse the response based on the resource name
-                switch ($resource->name) {
-                    case 'Dramabox':
-                        $moviesData = $responseData['recommendList']['records'] ?? $responseData;
-                        break;
-                    case 'Melolo':
-                        $moviesData = $responseData['data']['cell']['books'] ?? [];
-                        break;
-                    case 'Netshort':
-                        $moviesData = $responseData['data']['dataList'] ?? [];
-                        break;
-                    case 'Reellife':
-                        $moviesData = $responseData['data']['dramas'] ?? [];
-                        break;
-                }
+                        foreach ($moviesData as $movieData) {
+                            $externalId = $movieData['bookId'] ?? null;
+                            $title = $movieData['bookName'] ?? 'Unknown Title';
+                            $coverUrl = $movieData['coverWap'] ?? null;
+                            $description = $movieData['introduction'] ?? null;
+                            $chapterCount = $movieData['chapterCount'] ?? null;
+                            $tags = $movieData['tags'] ?? [];
+                            $playCount = $movieData['playCount'] ?? null;
+                            $shelfTime = $movieData['shelfTime'] ?? null;
 
-                $count = 0;
-                foreach ($moviesData as $movieData) {
-                    // Standardize field extraction based on source differences
-                    $externalId = $movieData['bookId'] ?? $movieData['shortPlayId'] ?? null;
-                    $title = $movieData['bookName'] ?? $movieData['shortPlayName'] ?? 'Unknown Title';
-                    $coverUrl = $movieData['coverWap'] ?? $movieData['shortPlayCover'] ?? $movieData['thumb_url'] ?? null;
-                    $description = $movieData['introduction'] ?? $movieData['abstract'] ?? null;
-
-                    if ($externalId) {
-                        Movie::updateOrCreate(
-                            [
-                                'resource_id' => $resource->id,
-                                'external_id' => $externalId
-                            ],
-                            [
-                                'title' => $title,
-                                'poster_url' => $coverUrl,
-                                'description' => $description,
-                                'metadata' => $movieData,
-                                'last_sync_at' => now(),
-                            ]
-                        );
-                        $count++;
+                            if ($externalId) {
+                                Movie::updateOrCreate(
+                                    [
+                                        'resource_id' => $resource->id,
+                                        'external_id' => $externalId,
+                                    ],
+                                    [
+                                        'title' => $title,
+                                        'poster_url' => $coverUrl,
+                                        'description' => $description,
+                                        'chapter_count' => $chapterCount,
+                                        'tags' => $tags,
+                                        'play_count' => $playCount,
+                                        'shelf_time' => $shelfTime,
+                                        'metadata' => $movieData,
+                                        'last_sync_at' => now(),
+                                    ]
+                                );
+                                $count++;
+                            }
+                        }
+                    } else {
+                        break; // Stop on API error
                     }
                 }
+            } else {
+                // Handling for other resources
+                $url = $resource->api_url;
+                if ($resource->name === 'Melolo') {
+                    $url .= 'home?lang=id&offset=0';
+                } elseif ($resource->name === 'Netshort') {
+                    $url .= 'list/1?lang=in';
+                } elseif ($resource->name === 'Reellife') {
+                    $url .= 'home?page=1&lang=in';
+                }
 
-                return $count;
+                $response = Http::get($url);
+
+                if ($response->successful()) {
+                    $responseData = $response->json();
+                    $moviesData = [];
+
+                    switch ($resource->name) {
+                        case 'Melolo':
+                            $moviesData = $responseData['data']['cell']['books'] ?? [];
+                            break;
+                        case 'Netshort':
+                            $moviesData = $responseData['data']['dataList'] ?? [];
+                            break;
+                        case 'Reellife':
+                            $moviesData = $responseData['data']['dramas'] ?? [];
+                            break;
+                    }
+
+                    foreach ($moviesData as $movieData) {
+                        $externalId = $movieData['bookId'] ?? $movieData['shortPlayId'] ?? null;
+                        $title = $movieData['bookName'] ?? $movieData['shortPlayName'] ?? 'Unknown Title';
+                        $coverUrl = $movieData['coverWap'] ?? $movieData['shortPlayCover'] ?? $movieData['thumb_url'] ?? null;
+                        $description = $movieData['introduction'] ?? $movieData['abstract'] ?? null;
+
+                        if ($externalId) {
+                            Movie::updateOrCreate(
+                                [
+                                    'resource_id' => $resource->id,
+                                    'external_id' => $externalId,
+                                ],
+                                [
+                                    'title' => $title,
+                                    'poster_url' => $coverUrl,
+                                    'description' => $description,
+                                    'metadata' => $movieData,
+                                    'last_sync_at' => now(),
+                                ]
+                            );
+                            $count++;
+                        }
+                    }
+                }
             }
+
+            return $count;
         } catch (\Exception $e) {
-            Log::error("Failed to sync movies for resource {$resource->name}: " . $e->getMessage());
+            Log::error("Failed to sync movies for resource {$resource->name}: ".$e->getMessage());
             dd($e->getMessage()); // Temporary for debugging if needed
         }
 
@@ -95,10 +139,10 @@ class MovieApiService
             // As per user instruction, all episodes use this Dramabox endpoint
             $url = 'https://dramabox.dramabos.my.id/api/v1/allepisode';
             $apiKey = config('services.dramabos.api_key');
-            
+
             $response = Http::get($url, [
                 'bookId' => $movie->external_id,
-                'code' => $apiKey
+                'code' => $apiKey,
             ]);
 
             if ($response->successful()) {
@@ -108,7 +152,7 @@ class MovieApiService
                     Episode::updateOrCreate(
                         [
                             'movie_id' => $movie->id,
-                            'external_id' => $episodeData['chapterId']
+                            'external_id' => $episodeData['chapterId'],
                         ],
                         [
                             'title' => $episodeData['chapterName'],
@@ -120,7 +164,7 @@ class MovieApiService
                 return count($episodes);
             }
         } catch (\Exception $e) {
-            Log::error("Failed to sync episodes for movie {$movie->title}: " . $e->getMessage());
+            Log::error("Failed to sync episodes for movie {$movie->title}: ".$e->getMessage());
         }
 
         return 0;

@@ -13,12 +13,18 @@ class Movie extends Model
         'poster_url',
         'description',
         'metadata',
-        'last_sync_at'
+        'chapter_count',
+        'tags',
+        'play_count',
+        'shelf_time',
+        'last_sync_at',
     ];
 
     protected $casts = [
         'metadata' => 'array',
-        'last_sync_at' => 'datetime'
+        'tags' => 'array',
+        'shelf_time' => 'datetime',
+        'last_sync_at' => 'datetime',
     ];
 
     public function resource()
