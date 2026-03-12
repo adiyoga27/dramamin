@@ -23,7 +23,7 @@ class MovieController extends Controller
         $query = Movie::with('resource')->withCount('episodes');
 
         if ($request->has('search') && $request->search != '') {
-            $query->where('title', 'like', '%' . $request->search . '%');
+            $query->where('title', 'like', '%'.$request->search.'%');
         }
 
         if ($request->has('resource_id') && $request->resource_id != '') {
@@ -38,12 +38,12 @@ class MovieController extends Controller
     public function sync(Request $request)
     {
         $request->validate([
-            'resource_id' => 'required|exists:resources,id'
+            'resource_id' => 'required|exists:resources,id',
         ]);
 
         $resource = Resource::find($request->resource_id);
-        
-        if (!$resource) {
+
+        if (! $resource) {
             return back()->with('error', 'No resource found.');
         }
 
@@ -55,14 +55,21 @@ class MovieController extends Controller
     public function show(Movie $movie)
     {
         $episodes = $movie->episodes()->paginate(20);
-        return view('admin.movies.show', compact('movie', 'episodes'));
+
+        // Calculate progress so frontend can resume bulk downloading UI on refresh
+        $totalEpisodes = $movie->episodes()->count();
+        $inProgressEpisodes = $movie->episodes()->where('status', 'pending')->count();
+        $completedEpisodes = $movie->episodes()->where('status', 'completed')->count();
+        $isDownloading = $inProgressEpisodes > 0;
+
+        return view('admin.movies.show', compact('movie', 'episodes', 'totalEpisodes', 'inProgressEpisodes', 'completedEpisodes', 'isDownloading'));
     }
 
     public function exportJson(Movie $movie)
     {
         $data = $movie->load('episodes');
         $filename = "movie_{$movie->external_id}.json";
-        
+
         return response($data->toJson(JSON_PRETTY_PRINT))
             ->header('Content-Type', 'application/json')
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
@@ -72,7 +79,7 @@ class MovieController extends Controller
     {
         // Only get episodes that have been downloaded
         $episodes = $movie->episodes()->where('status', 'completed')->whereNotNull('local_path')->orderBy('id')->get();
-        
+
         if ($episodes->isEmpty()) {
             return back()->with('info', 'There are no downloaded episodes for this movie. Please download some first.');
         }
@@ -80,7 +87,7 @@ class MovieController extends Controller
         // Determine current episode
         if ($episodeId) {
             $currentEpisode = $episodes->firstWhere('id', $episodeId);
-            if (!$currentEpisode) {
+            if (! $currentEpisode) {
                 // Flash message but fallback to first if id is invalid/not downloaded
                 session()->flash('warning', 'The requested episode is not available locally.');
                 $currentEpisode = $episodes->first();
@@ -93,9 +100,9 @@ class MovieController extends Controller
         $currentIndex = $episodes->search(function ($ep) use ($currentEpisode) {
             return $ep->id === $currentEpisode->id;
         });
-        
-        $nextEpisode = $currentIndex !== false && isset($episodes[$currentIndex + 1]) 
-            ? $episodes[$currentIndex + 1] 
+
+        $nextEpisode = $currentIndex !== false && isset($episodes[$currentIndex + 1])
+            ? $episodes[$currentIndex + 1]
             : null;
 
         return view('admin.movies.player', compact('movie', 'episodes', 'currentEpisode', 'nextEpisode'));

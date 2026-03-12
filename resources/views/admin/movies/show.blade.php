@@ -177,35 +177,22 @@
 @push('scripts')
 <script>
     document.addEventListener('alpine:init', () => {
-        Alpine.data('downloadTracker', (movieId) => ({
-            isDownloading: false,
-            total: 0,
-            completed: 0,
-            percentage: 0,
-            interval: null,
-
-            async startDownload(e) {
-                this.isDownloading = true;
-                
-                // Submit the form via AJAX to start the job
-                try {
-                    const form = e.target;
-                    await fetch(form.action, {
-                        method: 'POST',
-                        body: new FormData(form),
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-                    
-                    // Start polling immediately
+        Alpine.data('downloadTracker', () => ({
+            isDownloading: {{ $isDownloading ? 'true' : 'false' }},
+            progress: {{ $totalEpisodes > 0 ? round(($completedEpisodes / $totalEpisodes) * 100) : 0 }},
+            completed: {{ $completedEpisodes }},
+            total: {{ $totalEpisodes }},
+            
+            init() {
+                // If the page was refreshed while a background download is already happening
+                if (this.isDownloading && this.completed < this.total) {
                     this.pollProgress();
-                    this.interval = setInterval(() => this.pollProgress(), 3000);
-                } catch (error) {
-                    console.error('Failed to start download:', error);
-                    this.isDownloading = false;
                 }
             },
+
+            startDownload(event) {
+                this.isDownloading = true;
+                
 
             async pollProgress() {
                 try {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DocsController;
 use App\Http\Controllers\Admin\EpisodeController;
 use App\Http\Controllers\Admin\MovieController;
 use App\Http\Controllers\ProfileController;
@@ -11,9 +12,12 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
-    Route::get('/movies', [MovieController::class, 'index'])->name('movies.index');
+    // Docs
+    Route::get('/docs/api', [DocsController::class, 'api'])->name('admin.docs.api');
+
+    // Movies::get('/movies', [MovieController::class, 'index'])->name('movies.index');
     Route::post('/movies/sync', [MovieController::class, 'sync'])->name('movies.sync');
     Route::get('/movies/{movie}', [MovieController::class, 'show'])->name('movies.show');
     Route::get('/movies/{movie}/play/{episode?}', [MovieController::class, 'play'])->name('movies.play');
