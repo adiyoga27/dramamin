@@ -16,6 +16,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // Docs
     Route::get('/docs/api', [DocsController::class, 'api'])->name('docs.api');
+    Route::post('/docs/api/token', [DocsController::class, 'generateToken'])->name('docs.api.token');
 
     Route::get('/movies', [MovieController::class, 'index'])->name('movies.index');
     Route::post('/movies/sync', [MovieController::class, 'sync'])->name('movies.sync');
