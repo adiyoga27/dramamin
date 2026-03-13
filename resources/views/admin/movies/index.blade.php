@@ -59,6 +59,22 @@
         <div class="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             <div class="aspect-[2/3] overflow-hidden">
                 <img src="{{ $movie->poster_url }}" alt="{{ $movie->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                
+                @if($movie->downloaded_count > 0)
+                    <div class="absolute top-2 left-2 z-10">
+                        <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/90 backdrop-blur text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-emerald-500/20 border border-white/20">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                            </span>
+                            Offline
+                            @if($movie->downloaded_count < $movie->episodes_count)
+                                <span class="opacity-75 font-medium ml-0.5">({{ $movie->downloaded_count }}/{{ $movie->episodes_count }})</span>
+                            @endif
+                        </span>
+                    </div>
+                @endif
+
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
                     <a href="{{ route('admin.movies.show', $movie) }}" class="w-full py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-center text-sm font-semibold rounded-xl border border-white/30 transition-all">
                         View Episodes

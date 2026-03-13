@@ -20,7 +20,11 @@ class MovieController extends Controller
     public function index(Request $request)
     {
         $resources = Resource::all();
-        $query = Movie::with('resource')->withCount('episodes');
+        $query = Movie::with('resource')
+            ->withCount('episodes')
+            ->withCount(['episodes as downloaded_count' => function ($query) {
+                $query->where('status', 'completed');
+            }]);
 
         if ($request->has('search') && $request->search != '') {
             $query->where('title', 'like', '%'.$request->search.'%');

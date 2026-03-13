@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Gate::define('viewApiDocs', function ($user = null) {
+            return true; // Allow all for now, or restrict to admin
+        });
+
         \Dedoc\Scramble\Scramble::extendOpenApi(function (\Dedoc\Scramble\Support\Generator\OpenApi $openApi) {
             $openApi->secure(
                 \Dedoc\Scramble\Support\Generator\SecurityScheme::http('bearer')
