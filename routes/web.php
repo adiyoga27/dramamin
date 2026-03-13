@@ -12,12 +12,12 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Docs
-    Route::get('/docs/api', [DocsController::class, 'api'])->name('admin.docs.api');
+    Route::get('/docs/api', [DocsController::class, 'api'])->name('docs.api');
 
-    // Movies::get('/movies', [MovieController::class, 'index'])->name('movies.index');
+    Route::get('/movies', [MovieController::class, 'index'])->name('movies.index');
     Route::post('/movies/sync', [MovieController::class, 'sync'])->name('movies.sync');
     Route::get('/movies/{movie}', [MovieController::class, 'show'])->name('movies.show');
     Route::get('/movies/{movie}/play/{episode?}', [MovieController::class, 'play'])->name('movies.play');
