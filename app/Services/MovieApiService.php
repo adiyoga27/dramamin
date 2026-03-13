@@ -42,7 +42,7 @@ class MovieApiService
                             $shelfTime = $movieData['shelfTime'] ?? null;
 
                             if ($externalId) {
-                                Movie::updateOrCreate(
+                                $movie = Movie::updateOrCreate(
                                     [
                                         'resource_id' => $resource->id,
                                         'external_id' => $externalId,
@@ -59,6 +59,10 @@ class MovieApiService
                                         'last_sync_at' => now(),
                                     ]
                                 );
+
+                                // Automatically sync episodes for this movie
+                                $this->syncEpisodes($movie);
+
                                 $count++;
                             }
                         }
@@ -102,7 +106,7 @@ class MovieApiService
                         $description = $movieData['introduction'] ?? $movieData['abstract'] ?? null;
 
                         if ($externalId) {
-                            Movie::updateOrCreate(
+                            $movie = Movie::updateOrCreate(
                                 [
                                     'resource_id' => $resource->id,
                                     'external_id' => $externalId,
@@ -115,6 +119,10 @@ class MovieApiService
                                     'last_sync_at' => now(),
                                 ]
                             );
+
+                            // Automatically sync episodes for this movie
+                            $this->syncEpisodes($movie);
+
                             $count++;
                         }
                     }

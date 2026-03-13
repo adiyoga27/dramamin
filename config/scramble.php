@@ -44,7 +44,7 @@ return [
         /*
          * Define the theme of the documentation. Available options are `light`, `dark`, and `system`.
          */
-        'theme' => 'light',
+        'theme' => 'dark',
 
         /*
          * Hide the `Try It` feature. Enabled by default.
@@ -89,7 +89,9 @@ return [
      * ],
      * ```
      */
-    'servers' => null,
+    'servers' => [
+        'Production' => 'https://codingajaindonesia.site/api',
+    ],
 
     /**
      * Determines how Scramble stores the descriptions of enum cases.
