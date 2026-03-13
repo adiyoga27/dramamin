@@ -62,7 +62,7 @@ class MovieController extends Controller
 
         // Calculate progress so frontend can resume bulk downloading UI on refresh
         $totalEpisodes = $movie->episodes()->count();
-        $inProgressEpisodes = $movie->episodes()->where('status', 'downloading')->count();
+        $inProgressEpisodes = $movie->episodes()->whereIn('status', ['pending', 'downloading'])->count();
         $completedEpisodes = $movie->episodes()->where('status', 'completed')->count();
         $isDownloading = $inProgressEpisodes > 0;
 

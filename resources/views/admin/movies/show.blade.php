@@ -71,7 +71,7 @@
 
                 <div x-data="downloadTracker({{ $movie->id }})" class="w-full md:w-auto">
                     <template x-if="!isDownloading">
-                        <form @submit="startDownload" action="{{ route('admin.episodes.downloadAll', $movie) }}" method="POST">
+                        <form @submit.prevent="startDownload" action="{{ route('admin.episodes.downloadAll', $movie) }}" method="POST">
                             @csrf
                             <button type="submit" class="btn-primary flex items-center bg-emerald-600 border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700 w-full md:w-auto" onclick="return confirm('This will bulk download all un-downloaded episodes to storage in the background. Continue?');">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 10l5 5 5-5m-5 5V3"></path></svg>
@@ -193,14 +193,36 @@
                 }
             },
 
-            startDownload() {
+            async startDownload() {
                 this.isDownloading = true;
-                setTimeout(() => this.startPolling(), 1000);
+                
+                try {
+                    const response = await fetch("{{ route('admin.episodes.downloadAll', $movie) }}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        this.startPolling();
+                    } else {
+                        console.error('Failed to start download');
+                        this.isDownloading = false;
+                        alert('Failed to start background download. Please check logs.');
+                    }
+                } catch (error) {
+                    console.error('Error starting download:', error);
+                    this.isDownloading = false;
+                }
             },
 
             startPolling() {
                 if (this.interval) clearInterval(this.interval);
                 this.interval = setInterval(() => this.pollProgress(), 3000);
+                this.pollProgress(); // Poll once immediately
             },
 
             async pollProgress() {

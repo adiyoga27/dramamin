@@ -76,6 +76,14 @@ class EpisodeController extends Controller
             DownloadEpisodeJob::dispatch($episode);
         }
 
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Started background download for {$episodes->count()} episodes.",
+                'count' => $episodes->count()
+            ]);
+        }
+
         return back()->with('success', "Started background download for {$episodes->count()} episodes.");
     }
 
