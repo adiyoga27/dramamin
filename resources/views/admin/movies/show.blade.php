@@ -71,7 +71,7 @@
 
                 <div x-data="downloadTracker({{ $movie->id }})" class="w-full md:w-auto">
                     <template x-if="!isDownloading">
-                        <form @submit.prevent="startDownload" action="{{ route('admin.episodes.downloadAll', $movie) }}" method="POST">
+                        <form @submit="startDownload" action="{{ route('admin.episodes.downloadAll', $movie) }}" method="POST">
                             @csrf
                             <button type="submit" class="btn-primary flex items-center bg-emerald-600 border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700 w-full md:w-auto" onclick="return confirm('This will bulk download all un-downloaded episodes to storage in the background. Continue?');">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 10l5 5 5-5m-5 5V3"></path></svg>
@@ -80,14 +80,15 @@
                         </form>
                     </template>
                     <template x-if="isDownloading">
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 w-full min-w-[240px]">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-100 dark:border-blue-800 w-full min-w-[280px]">
                             <div class="flex justify-between text-sm mb-2">
-                                <span class="font-semibold text-gray-700 dark:text-gray-300">Downloading...</span>
-                                <span class="text-blue-600 dark:text-blue-400 font-bold" x-text="`${completed} / ${total}`"></span>
+                                <span class="font-bold text-blue-700 dark:text-blue-300">Downloading Episodes...</span>
+                                <span class="text-blue-600 dark:text-blue-400 font-black font-mono" x-text="`${completed} / ${total}`"></span>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden">
-                                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out" :style="`width: ${percentage}%`"></div>
+                            <div class="w-full bg-blue-100 dark:bg-blue-900/50 rounded-full h-3 overflow-hidden border border-blue-200 dark:border-blue-800">
+                                <div class="bg-blue-600 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(37,99,235,0.5)]" :style="`width: ${percentage}%`"></div>
                             </div>
+                            <p class="mt-2 text-[10px] text-blue-500 uppercase font-bold tracking-widest text-center" x-text="`${percentage}% Complete`"></p>
                         </div>
                     </template>
                 </div>
@@ -138,25 +139,27 @@
                                 <span class="px-3 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-full">Pending</span>
                             @endif
                         </td>
-                        <td class="px-8 py-5 text-right flex items-center justify-end gap-3">
-                            <a href="{{ route('admin.episodes.export', $episode) }}" class="p-2 text-gray-400 hover:text-blue-600 transition-colors" title="Export JSON">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            </a>
-                            @if($episode->status === 'completed' && $episode->local_path)
-                            <a href="{{ route('admin.movies.play', ['movie' => $movie, 'episode' => $episode->id]) }}" class="p-2 text-indigo-500 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors" title="Play Episode">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </a>
-                            @endif
+                        <td class="px-8 py-5">
+                            <div class="flex items-center justify-end gap-3">
+                                <a href="{{ route('admin.episodes.export', $episode) }}" class="p-2 text-gray-400 hover:text-blue-600 transition-colors" title="Export JSON">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                </a>
+                                @if($episode->status === 'completed' && $episode->local_path)
+                                <a href="{{ route('admin.movies.play', ['movie' => $movie, 'episode' => $episode->id]) }}" class="p-2 text-indigo-500 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors" title="Play Episode">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </a>
+                                @endif
 
-                            <form action="{{ route('admin.episodes.download', $episode) }}" method="POST">
-                                @csrf
-                                <button type="submit" 
-                                    class="inline-flex items-center px-4 py-2 {{ $episode->local_path ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white' }} font-bold text-sm rounded-xl transition-all"
-                                    {{ $episode->local_path ? 'disabled' : '' }}>
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                    {{ $episode->local_path ? 'Offline' : 'Download Video' }}
-                                </button>
-                            </form>
+                                <form action="{{ route('admin.episodes.download', $episode) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" 
+                                        class="inline-flex items-center px-4 py-2 {{ $episode->local_path ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white shadow-sm' }} font-bold text-sm rounded-xl transition-all"
+                                        {{ $episode->local_path ? 'disabled' : '' }}>
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                        {{ $episode->local_path ? 'Offline' : 'Download' }}
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty
@@ -177,22 +180,28 @@
 @push('scripts')
 <script>
     document.addEventListener('alpine:init', () => {
-        Alpine.data('downloadTracker', () => ({
+        Alpine.data('downloadTracker', (movieId) => ({
             isDownloading: {{ $isDownloading ? 'true' : 'false' }},
-            progress: {{ $totalEpisodes > 0 ? round(($completedEpisodes / $totalEpisodes) * 100) : 0 }},
+            percentage: {{ $totalEpisodes > 0 ? round(($completedEpisodes / $totalEpisodes) * 100) : 0 }},
             completed: {{ $completedEpisodes }},
             total: {{ $totalEpisodes }},
+            interval: null,
             
             init() {
-                // If the page was refreshed while a background download is already happening
-                if (this.isDownloading && this.completed < this.total) {
-                    this.pollProgress();
+                if (this.isDownloading && (this.total === 0 || this.completed < this.total)) {
+                    this.startPolling();
                 }
             },
 
-            startDownload(event) {
+            startDownload() {
                 this.isDownloading = true;
-                
+                setTimeout(() => this.startPolling(), 1000);
+            },
+
+            startPolling() {
+                if (this.interval) clearInterval(this.interval);
+                this.interval = setInterval(() => this.pollProgress(), 3000);
+            },
 
             async pollProgress() {
                 try {
@@ -203,11 +212,11 @@
                     this.completed = data.completed;
                     this.percentage = this.total > 0 ? Math.round((this.completed / this.total) * 100) : 0;
 
-                    if (data.is_finished && this.isDownloading) {
+                    if (data.is_finished) {
                         clearInterval(this.interval);
                         setTimeout(() => {
                             window.location.reload();
-                        }, 1000);
+                        }, 2000);
                     }
                 } catch (error) {
                     console.error('Error fetching progress:', error);
