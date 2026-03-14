@@ -32,36 +32,17 @@ class EpisodeController extends Controller
             return back()->with('info', 'Episode already downloaded.');
         }
 
-        // In a real app, this should be a background job.
-        // For this demo, we'll do it synchronously or simulate it.
+        $episode->update(['status' => 'pending']);
+        DownloadEpisodeJob::dispatch($episode);
 
-        try {
-            $episode->update(['status' => 'downloading']);
-
-            $url = $episode->download_url;
-            $extension = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'mp4';
-            $filename = "videos/{$episode->movie->id}/{$episode->external_id}.{$extension}";
-
-            $response = Http::get($url);
-
-            if ($response->successful()) {
-                Storage::disk('public')->put($filename, $response->body());
-                $episode->update([
-                    'local_path' => $filename,
-                    'status' => 'completed',
-                ]);
-
-                return back()->with('success', 'Download completed.');
-            } else {
-                $episode->update(['status' => 'failed']);
-
-                return back()->with('error', 'Download failed: API error.');
-            }
-        } catch (\Exception $e) {
-            $episode->update(['status' => 'failed']);
-
-            return back()->with('error', 'Download failed: '.$e->getMessage());
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Download started in background.',
+            ]);
         }
+
+        return back()->with('success', 'Download started in background.');
     }
 
     public function downloadAll(Movie $movie)
@@ -73,6 +54,7 @@ class EpisodeController extends Controller
         }
 
         foreach ($episodes as $episode) {
+            $episode->update(['status' => 'pending']);
             DownloadEpisodeJob::dispatch($episode);
         }
 

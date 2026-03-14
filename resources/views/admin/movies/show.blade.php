@@ -69,7 +69,12 @@
                     </button>
                 </form>
 
-                <div x-data="downloadTracker({{ $movie->id }})" class="w-full md:w-auto">
+                <div x-data="downloadTracker" 
+                     data-movie-id="{{ $movie->id }}" 
+                     data-is-downloading="{{ $isDownloading ? 'true' : 'false' }}"
+                     data-completed="{{ $completedEpisodes }}"
+                     data-total="{{ $totalEpisodes }}"
+                     class="w-full md:w-auto">
                     <template x-if="!isDownloading">
                         <form @submit.prevent="startDownload" action="{{ route('admin.episodes.downloadAll', $movie) }}" method="POST">
                             @csrf
@@ -180,71 +185,84 @@
 @push('scripts')
 <script>
     document.addEventListener('alpine:init', () => {
-        Alpine.data('downloadTracker', (movieId) => ({
-            isDownloading: {{ $isDownloading ? 'true' : 'false' }},
-            percentage: {{ $totalEpisodes > 0 ? round(($completedEpisodes / $totalEpisodes) * 100) : 0 }},
-            completed: {{ $completedEpisodes }},
-            total: {{ $totalEpisodes }},
-            interval: null,
-            
-            init() {
-                if (this.isDownloading && (this.total === 0 || this.completed < this.total)) {
-                    this.startPolling();
-                }
-            },
-
-            async startDownload() {
-                this.isDownloading = true;
+        Alpine.data('downloadTracker', function() {
+            return {
+                isDownloading: false,
+                percentage: 0,
+                completed: 0,
+                total: 0,
+                movieId: null,
+                interval: null,
                 
-                try {
-                    const response = await fetch("{{ route('admin.episodes.downloadAll', $movie) }}", {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        this.startPolling();
-                    } else {
-                        console.error('Failed to start download');
-                        this.isDownloading = false;
-                        alert('Failed to start background download. Please check logs.');
-                    }
-                } catch (error) {
-                    console.error('Error starting download:', error);
-                    this.isDownloading = false;
-                }
-            },
-
-            startPolling() {
-                if (this.interval) clearInterval(this.interval);
-                this.interval = setInterval(() => this.pollProgress(), 3000);
-                this.pollProgress(); // Poll once immediately
-            },
-
-            async pollProgress() {
-                try {
-                    const response = await fetch(`/admin/movies/${movieId}/episodes/progress`);
-                    const data = await response.json();
-                    
-                    this.total = data.total;
-                    this.completed = data.completed;
+                init: function() {
+                    const el = this.$el;
+                    this.movieId = el.getAttribute('data-movie-id');
+                    this.isDownloading = el.getAttribute('data-is-downloading') === 'true';
+                    this.completed = parseInt(el.getAttribute('data-completed') || 0);
+                    this.total = parseInt(el.getAttribute('data-total') || 0);
                     this.percentage = this.total > 0 ? Math.round((this.completed / this.total) * 100) : 0;
 
-                    if (data.is_finished) {
-                        clearInterval(this.interval);
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 2000);
+                    if (this.isDownloading) {
+                        this.startPolling();
                     }
-                } catch (error) {
-                    console.error('Error fetching progress:', error);
+                },
+
+                startDownload: async function() {
+                    this.isDownloading = true;
+                    
+                    try {
+                        const response = await fetch("{{ route('admin.episodes.downloadAll', $movie) }}", {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            this.startPolling();
+                        } else {
+                            console.error('Failed to start download');
+                            this.isDownloading = false;
+                            alert('Failed to start download.');
+                        }
+                    } catch (error) {
+                        console.error('Error starting download:', error);
+                        this.isDownloading = false;
+                    }
+                },
+
+                startPolling: function() {
+                    if (this.interval) clearInterval(this.interval);
+                    var self = this;
+                    this.interval = setInterval(function() {
+                        self.pollProgress();
+                    }, 3000);
+                    this.pollProgress();
+                },
+
+                pollProgress: async function() {
+                    try {
+                        const resp = await fetch('/admin/movies/' + this.movieId + '/episodes/progress');
+                        const data = await resp.json();
+                        
+                        this.total = data.total;
+                        this.completed = data.completed;
+                        this.percentage = this.total > 0 ? Math.round((this.completed / this.total) * 100) : 0;
+
+                        if (data.is_finished) {
+                            clearInterval(this.interval);
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 2000);
+                        }
+                    } catch (e) {
+                        console.error('Polling error:', e);
+                    }
                 }
-            }
-        }));
+            };
+        });
     });
 </script>
 @endpush
