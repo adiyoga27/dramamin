@@ -56,48 +56,83 @@
     <!-- Movie Grid -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
         @forelse($movies as $movie)
-        <div class="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="aspect-[2/3] overflow-hidden">
+        <div x-data="downloadTracker" 
+             data-movie-id="{{ $movie->id }}" 
+             data-is-downloading="{{ $movie->in_progress_count > 0 ? 'true' : 'false' }}"
+             data-completed="{{ $movie->downloaded_count }}"
+             data-total="{{ $movie->episodes_count }}"
+             class="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            
+            <div class="aspect-[2/3] overflow-hidden relative">
                 <img src="{{ $movie->poster_url }}" alt="{{ $movie->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                 
-                @if($movie->downloaded_count > 0)
-                    <div class="absolute top-2 left-2 z-10">
-                        <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/90 backdrop-blur text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-emerald-500/20 border border-white/20">
+                <!-- Status Badge -->
+                <div class="absolute top-2 left-2 z-10 flex flex-col gap-2">
+                    <template x-if="completed > 0">
+                        <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/90 backdrop-blur text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg border border-white/20">
                             <span class="relative flex h-2 w-2">
                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                                 <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                             </span>
                             Offline
-                            @if($movie->downloaded_count < $movie->episodes_count)
-                                <span class="opacity-75 font-medium ml-0.5">({{ $movie->downloaded_count }}/{{ $movie->episodes_count }})</span>
-                            @endif
+                            <span class="opacity-75 font-medium ml-0.5" x-text="'(' + completed + '/' + total + ')'"></span>
                         </span>
-                    </div>
-                @endif
+                    </template>
+                    
+                    <template x-if="isDownloading">
+                        <span class="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/90 backdrop-blur text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg border border-white/20">
+                            <svg class="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            Syncing...
+                        </span>
+                    </template>
+                </div>
 
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                    <a href="{{ route('admin.movies.show', $movie) }}" class="w-full py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-center text-sm font-semibold rounded-xl border border-white/30 transition-all">
-                        View Episodes
+                <!-- Progress Overlay (Only when downloading) -->
+                <template x-if="isDownloading">
+                    <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center p-4 z-20">
+                        <div class="w-full max-w-[80px] aspect-square relative flex items-center justify-center">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="40" cy="40" r="32" stroke="currentColor" stroke-width="6" fill="transparent" class="text-white/20" />
+                                <circle cx="40" cy="40" r="32" stroke="currentColor" stroke-width="6" fill="transparent" class="text-blue-500 transition-all duration-500" 
+                                        stroke-dasharray="201" 
+                                        :stroke-dashoffset="201 - (201 * percentage / 100)" />
+                            </svg>
+                            <span class="absolute text-white text-xs font-black" x-text="percentage + '%'"></span>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Actions Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4 z-30 space-y-2">
+                    <template x-if="!isDownloading && completed < total">
+                        <button @click.prevent="startDownload" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-center text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download All
+                        </button>
+                    </template>
+                    <a href="{{ route('admin.movies.show', $movie) }}" class="w-full py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white text-center text-[10px] font-bold uppercase tracking-wider rounded-xl border border-white/20 transition-all">
+                        Episode List
                     </a>
                 </div>
             </div>
-            <div class="p-4">
+            
+            <div class="p-4 bg-white dark:bg-gray-800">
                 <h3 class="font-bold text-sm line-clamp-2 h-10 group-hover:text-blue-600 transition-colors">{{ $movie->title }}</h3>
-                <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
-                    <span class="flex items-center">
-                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path></svg>
-                        {{ $movie->episodes_count }} EP
+                <div class="mt-2 flex items-center justify-between text-[10px] font-bold text-gray-400">
+                    <span class="flex items-center uppercase tracking-widest font-black">
+                        <svg class="w-3 h-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path></svg>
+                        <span x-text="total"></span> EPISODES
                     </span>
                     @php
                         $badgeColors = [
-                            'Dramabox' => 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
-                            'Melolo' => 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
-                            'Netshort' => 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-                            'Reellife' => 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+                            'Dramabox' => 'bg-red-500/10 text-red-600 border-red-500/20',
+                            'Melolo' => 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+                            'Netshort' => 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+                            'Reellife' => 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
                         ];
-                        $colorClass = $badgeColors[$movie->resource->name] ?? 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+                        $colorClass = $badgeColors[$movie->resource->name] ?? 'bg-gray-500/10 text-gray-600 border-gray-500/20';
                     @endphp
-                    <span class="px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider {{ $colorClass }}">
+                    <span class="px-2 py-0.5 rounded border text-[8px] uppercase tracking-tighter {{ $colorClass }}">
                         {{ $movie->resource->name }}
                     </span>
                 </div>

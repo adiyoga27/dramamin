@@ -24,6 +24,9 @@ class MovieController extends Controller
             ->withCount('episodes')
             ->withCount(['episodes as downloaded_count' => function ($query) {
                 $query->where('status', 'completed');
+            }])
+            ->withCount(['episodes as in_progress_count' => function ($query) {
+                $query->whereIn('status', ['pending', 'downloading']);
             }]);
 
         if ($request->has('search') && $request->search != '') {
