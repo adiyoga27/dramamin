@@ -37,6 +37,12 @@ class ResourceSeeder extends Seeder
                 'api_key' => '30668AC178A065E6EA49D0CBB822E30F',
                 'status' => true,
             ],
+            [
+                'name' => 'Reelshort',
+                'api_url' => 'https://reelshort.dramabos.online/',
+                'api_key' => '30668AC178A065E6EA49D0CBB822E30F',
+                'status' => true,
+            ],
         ];
 
         foreach ($resources as $res) {

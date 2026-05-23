@@ -45,7 +45,7 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 text-sm">{{ $movie->resource->name }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $movie->last_sync_at->diffForHumans() }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ $movie->last_sync_at?->diffForHumans() ?? 'Never' }}</td>
                     </tr>
                     @empty
                     <tr>

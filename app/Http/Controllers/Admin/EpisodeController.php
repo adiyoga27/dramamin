@@ -21,9 +21,17 @@ class EpisodeController extends Controller
 
     public function sync(Movie $movie)
     {
-        $count = $this->apiService->syncEpisodes($movie);
+        try {
+            $count = $this->apiService->syncEpisodes($movie);
 
-        return back()->with('success', "Synced $count episodes successfully.");
+            if ($count === 0) {
+                return back()->with('error', 'No episodes synced. Check logs for details.');
+            }
+
+            return back()->with('success', "Synced $count episodes successfully.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Sync failed: '.$e->getMessage());
+        }
     }
 
     public function download(Episode $episode)
@@ -47,10 +55,28 @@ class EpisodeController extends Controller
 
     public function downloadAll(Movie $movie)
     {
+        $isReelshort = $movie->resource && $movie->resource->name === 'Reelshort';
+
         $episodes = $movie->episodes()->where('status', '!=', 'completed')->get();
 
         if ($episodes->isEmpty()) {
-            return back()->with('info', 'All episodes are already downloaded.');
+            return back()->with('info', 'All episodes are already available.');
+        }
+
+        if ($isReelshort) {
+            foreach ($episodes as $episode) {
+                $episode->update(['status' => 'completed']);
+            }
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "{$episodes->count()} episodes marked as available for streaming.",
+                    'count' => $episodes->count()
+                ]);
+            }
+
+            return back()->with('success', "{$episodes->count()} episodes marked as available for streaming.");
         }
 
         foreach ($episodes as $episode) {

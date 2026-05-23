@@ -30,8 +30,7 @@
                     id="videoPlayer" 
                     class="w-full h-full" 
                     controls 
-                    autoplay
-                    src="{{ asset('storage/' . $currentEpisode->local_path) }}">
+                    autoplay>
                     Your browser does not support the video tag.
                 </video>
             </div>
@@ -71,7 +70,7 @@
                         <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
                         Playlist
                     </h3>
-                    <p class="text-xs text-gray-500 mt-1">{{ $episodes->count() }} downloaded episodes</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ $episodes->count() }} available episodes</p>
                 </div>
                 
                 <div class="overflow-y-auto flex-1 p-2 space-y-1">
@@ -104,11 +103,33 @@
         const video = document.getElementById('videoPlayer');
         const speedSelect = document.getElementById('speedSelect');
         const nextUrl = "{{ $nextEpisode ? route('admin.movies.play', ['movie' => $movie, 'episode' => $nextEpisode->id]) : '' }}";
+        const isReelshort = {{ $isReelshort ? 'true' : 'false' }};
+        const streamUrl = "{{ $currentEpisode->download_url }}";
+        const localPath = "{{ $currentEpisode->local_path ? asset('storage/' . $currentEpisode->local_path) : '' }}";
+
+        function initPlayer(src) {
+            if (!src) return;
+            if (src.includes('.m3u8') && Hls.isSupported()) {
+                var hls = new Hls();
+                hls.loadSource(src);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play().catch(function() {});
+                });
+            } else {
+                video.src = src;
+            }
+        }
+
+        if (isReelshort) {
+            initPlayer(streamUrl);
+        } else if (localPath) {
+            initPlayer(localPath);
+        }
 
         // Handle playback speed changes
         speedSelect.addEventListener('change', function() {
             video.playbackRate = parseFloat(this.value);
-            // Save preference to localStorage
             localStorage.setItem('dracin_playback_speed', this.value);
         });
 
@@ -119,18 +140,9 @@
             video.playbackRate = parseFloat(savedSpeed);
         }
 
-        // Try to force play for reliable autoplay
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                console.log("Autoplay prevented by browser policy.");
-            });
-        }
-
         // Auto-play next episode
         video.addEventListener('ended', function() {
             if (nextUrl) {
-                // Little delay before redirecting
                 setTimeout(() => {
                     window.location.href = nextUrl;
                 }, 1000);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncReelshortJob;
 use App\Models\Movie;
 use App\Models\Resource;
 use App\Services\MovieApiService;
@@ -54,6 +55,12 @@ class MovieController extends Controller
             return back()->with('error', 'No resource found.');
         }
 
+        if ($resource->name === 'Reelshort') {
+            SyncReelshortJob::dispatch($resource);
+
+            return back()->with('success', 'Reelshort sync dispatched to queue.');
+        }
+
         $count = $this->apiService->syncMovies($resource);
 
         return back()->with('success', "Synced $count movies from {$resource->name} successfully.");
@@ -84,10 +91,25 @@ class MovieController extends Controller
 
     public function play(Request $request, Movie $movie, $episodeId = null)
     {
-        // Only get episodes that have been downloaded
-        $episodes = $movie->episodes()->where('status', 'completed')->whereNotNull('local_path')->orderBy('id')->get();
+        $resource = $movie->resource;
+        $isReelshort = $resource && $resource->name === 'Reelshort';
+
+        if ($isReelshort) {
+            $episodes = $movie->episodes()
+                ->whereNotNull('download_url')
+                ->orderBy('id')->get();
+        } else {
+            $episodes = $movie->episodes()
+                ->where('status', 'completed')
+                ->whereNotNull('local_path')
+                ->orderBy('id')->get();
+        }
 
         if ($episodes->isEmpty()) {
+            if ($isReelshort) {
+                return back()->with('info', 'No streaming episodes available for this movie. Please sync episodes first.');
+            }
+
             return back()->with('info', 'There are no downloaded episodes for this movie. Please download some first.');
         }
 
@@ -96,7 +118,7 @@ class MovieController extends Controller
             $currentEpisode = $episodes->firstWhere('id', $episodeId);
             if (! $currentEpisode) {
                 // Flash message but fallback to first if id is invalid/not downloaded
-                session()->flash('warning', 'The requested episode is not available locally.');
+                session()->flash('warning', 'The requested episode is not available.');
                 $currentEpisode = $episodes->first();
             }
         } else {
@@ -112,6 +134,6 @@ class MovieController extends Controller
             ? $episodes[$currentIndex + 1]
             : null;
 
-        return view('admin.movies.player', compact('movie', 'episodes', 'currentEpisode', 'nextEpisode'));
+        return view('admin.movies.player', compact('movie', 'episodes', 'currentEpisode', 'nextEpisode', 'isReelshort'));
     }
 }

@@ -70,6 +70,66 @@ class MovieApiService
                         break; // Stop on API error
                     }
                 }
+            } elseif ($resource->name === 'Reelshort') {
+                $tabs = ['NEW', 'POPULER', 'ASIA', 'RANKING', 'KHUSUS PRIA', 'KHUSUS WANITA'];
+
+                foreach ($tabs as $tab) {
+                    $tabUrl = $resource->api_url.'home?tab='.urlencode($tab).'&lang=id';
+                    $response = Http::withOptions(['verify' => false])->get($tabUrl);
+
+                    if (! $response->successful()) {
+                        continue;
+                    }
+
+                    $books = $response->json()['books'] ?? [];
+
+                    foreach ($books as $book) {
+                        $externalId = $book['id'] ?? null;
+                        $title = $book['title'] ?? 'Unknown Title';
+                        $coverUrl = $book['pic'] ?? null;
+                        $chapterCount = $book['chapters'] ?? null;
+
+                        if (! $externalId) {
+                            continue;
+                        }
+
+                        $description = null;
+                        $tags = [];
+                        $playCount = null;
+
+                        $detailUrl = $resource->api_url.'detail/'.$externalId.'?lang=id';
+                        $detailResponse = Http::withOptions(['verify' => false])->get($detailUrl);
+
+                        if ($detailResponse->successful()) {
+                            $detail = $detailResponse->json();
+                            $description = $detail['desc'] ?? null;
+                            $tags = $detail['theme'] ?? [];
+                            $playCount = $detail['views'] ?? null;
+                        }
+
+                        $movie = Movie::updateOrCreate(
+                            [
+                                'resource_id' => $resource->id,
+                                'external_id' => $externalId,
+                            ],
+                            [
+                                'title' => $title,
+                                'poster_url' => $coverUrl,
+                                'description' => $description,
+                                'chapter_count' => $chapterCount,
+                                'tags' => $tags,
+                                'play_count' => (string) $playCount,
+                                'shelf_time' => now(),
+                                'metadata' => array_merge($book, $detail ?? []),
+                                'last_sync_at' => now(),
+                            ]
+                        );
+
+                        $this->syncEpisodes($movie);
+
+                        $count++;
+                    }
+                }
             } else {
                 // Handling for other resources
                 $url = $resource->api_url;
@@ -144,11 +204,16 @@ class MovieApiService
     public function syncEpisodes(Movie $movie)
     {
         try {
-            // As per user instruction, all episodes use this Dramabox endpoint
+            $resource = $movie->resource;
+
+            if ($resource && $resource->name === 'Reelshort') {
+                return $this->syncReelshortEpisodes($movie, $resource);
+            }
+
             $url = 'https://dramabox.dramabos.my.id/api/v1/allepisode';
             $apiKey = config('services.dramabos.api_key');
 
-            $response = Http::get($url, [
+            $response = Http::withOptions(['verify' => false])->get($url, [
                 'bookId' => $movie->external_id,
                 'code' => $apiKey,
             ]);
@@ -176,5 +241,43 @@ class MovieApiService
         }
 
         return 0;
+    }
+
+    private function syncReelshortEpisodes(Movie $movie, Resource $resource)
+    {
+        $url = $resource->api_url.'allepisodes/'.$movie->external_id;
+        $code = $resource->api_key ?: config('services.dramabos.api_key');
+
+        $response = Http::withOptions(['verify' => false])->get($url, [
+            'code' => $code,
+        ]);
+
+        if (! $response->successful()) {
+            return 0;
+        }
+
+        $data = $response->json();
+        $episodes = $data['episodes'] ?? [];
+
+        foreach ($episodes as $ep) {
+            $streams = $ep['streams'] ?? [];
+            $bestStream = collect($streams)->firstWhere('quality', '720p');
+            if (! $bestStream) {
+                $bestStream = $streams[0] ?? null;
+            }
+
+            Episode::updateOrCreate(
+                [
+                    'movie_id' => $movie->id,
+                    'external_id' => $ep['id'],
+                ],
+                [
+                    'title' => $ep['name'],
+                    'download_url' => $bestStream['url'] ?? null,
+                ]
+            );
+        }
+
+        return count($episodes);
     }
 }
